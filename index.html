@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Playables SDK v1.0.0 -->
+<script>
+(function() {
+  'use strict';
+  if (window.playablesSDK) return;
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  function hasIOSBridge() {
+    return !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] && typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+  function sendEvent(eventName, payload) {
+    var message = { type: eventName, payload: payload || {}, timestamp: Date.now() };
+    if (hasIOSBridge()) {
+      try { window.webkit.messageHandlers[HANDLER_NAME].postMessage(message); } catch (e) {}
+      return;
+    }
+    if (hasAndroidBridge()) {
+      try {
+        var p = payload || {};
+        p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+        window[ANDROID_BRIDGE_NAME].postEvent(eventName, JSON.stringify(p));
+      } catch (e) {}
+      return;
+    }
+    if (isInIframe()) {
+      try { window.parent.postMessage(message, '*'); } catch (e) {}
+    }
+  }
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+      for (var i = 0; i < events.length; i++) document.removeEventListener(events[i], onFirstInteraction, true);
+    }
+    for (var i = 0; i < events.length; i++) document.addEventListener(events[i], onFirstInteraction, true);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else { setupFirstInteractionDetection(); }
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return; errorSent = true;
+    sendEvent('error', { message: event.message || 'Unknown error', source: event.filename || '', lineno: event.lineno || 0, colno: event.colno || 0, auto_captured: true });
+  });
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return; errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', { message: (reason instanceof Error) ? reason.message : String(reason), type: 'unhandled_promise_rejection', auto_captured: true });
+  });
+
+  window.playablesSDK = {
+    complete: function(score) { sendEvent('game_ended', { score: score, completed: true }); },
+    error: function(message) { if (errorSent) return; errorSent = true; sendEvent('error', { message: message || 'Unknown error', auto_captured: false }); },
+    sendEvent: function(eventName, payload) { if (!eventName || typeof eventName !== 'string') return; sendEvent(eventName, payload); }
+  };
+})();
+</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Chronicles — by Dhiraj</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@300;400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0B0B0B;
+  --paper: #FAF7F0;
+  --paper2: #F0EBE0;
+  --gold: #B8965A;
+  --gold2: #D4B877;
+  --line: #E0D9C9;
+  --shadow: 0 10px 30px rgba(0,0,0,.07);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+
+.top {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .8rem 1.2rem;
+  background: rgba(250,247,240,.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+.brand { display: flex; align-items: center; gap: .6rem; font-variant: small-caps; letter-spacing: .14em; }
+.brand img { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--gold); }
+
+.hero { padding: 10vh 1.5rem 4vh; text-align: center; }
+.hero h1 { font-family: "Cormorant Garamond", serif; font-size: clamp(3rem, 8vw, 6rem); margin: 0; line-height: .92; }
+.by { margin: 1rem 0; color: var(--gold); font-variant: small-caps; letter-spacing: .18em; }
+.sub { max-width: 700px; margin: .5rem auto 0; opacity: .75; font-size: 1.05rem; }
+
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 80px; gap: 2rem;
+  padding: 2rem 1rem 6rem;
+}
+@media (max-width: 980px) { .wrap { grid-template-columns: 1fr; } .rail { display: none; } }
+
+.timeline { position: relative; padding-left: 56px; }
+.timeline::before { content: ""; position: absolute; left: 26px; top: 0; bottom: 0; width: 2px; background: var(--line); }
+
+.section {
+  position: sticky; top: 62px;
+  background: var(--paper); padding: 1.2rem 0 .8rem;
+  margin: 3.5rem 0 1.5rem; z-index: 5;
+  border-bottom: 1px solid rgba(184,150,90,.25);
+}
+.section h2 { font-family: "Cormorant Garamond", serif; font-size: 2.3rem; margin: 0; color: var(--gold); }
+
+.item {
+  display: grid; grid-template-columns: 280px 1fr; gap: 2rem;
+  align-items: center; margin: 3rem 0; position: relative;
+}
+.item:nth-child(even) { grid-template-columns: 1fr 280px; }
+.item:nth-child(even) .art { order: 2; }
+@media (max-width: 900px) { .item { grid-template-columns: 1fr; gap: 1.2rem; } }
+
+.art { width: 260px; height: 260px; margin: 0 auto; position: relative; }
+.frame {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.12);
+  box-shadow: var(--shadow);
+  display: grid; place-items: center;
+  overflow: hidden;
+}
+.frame img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  mix-blend-mode: normal;
+}
+.dot {
+  position: absolute; left: -30px; top: 50%;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--gold);
+  transform: translateY(-50%);
+}
+
+.card h3 { font-family: "Cormorant Garamond", serif; font-size: 1.9rem; margin: 0 0 .3rem; }
+.card h3 a { color: inherit; text-decoration: none; border-bottom: 1px solid transparent; }
+.card h3 a:hover { color: var(--gold); border-color: var(--gold); }
+.meta { font-family: "IBM Plex Mono", monospace; font-size: .78rem; opacity: .7; margin-bottom: .5rem; }
+.desc { line-height: 1.6; margin: .4rem 0; }
+.why { margin-top: .7rem; font-style: italic; color: #5a4e3a; border-left: 3px solid var(--gold); padding-left: .8rem; }
+
+/* Slider Rail */
+.rail { position: sticky; top: 18vh; height: 68vh; }
+.rail-inner { position: relative; width: 100%; height: 100%; }
+.rail-line { position: absolute; left: 50%; top: 12px; bottom: 12px; width: 2px; background: var(--line); transform: translateX(-50%); }
+.rail-progress { position: absolute; left: 50%; top: 12px; width: 2px; background: var(--gold); transform: translateX(-50%); height: 0; }
+.thumb {
+  position: absolute; left: 50%; top: 12px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--gold);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 6px rgba(184,150,90,.18);
+  cursor: grab; z-index: 10;
+  display: grid; place-items: center;
+}
+.thumb::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+.marks { position: absolute; inset: 12px 0; }
+.mark {
+  position: absolute; left: 50%;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.8px solid #C4B9A3;
+  transform: translate(-50%, -50%);
+  cursor: pointer; transition: all .2s;
+}
+.mark:hover { transform: translate(-50%, -50%) scale(1.25); border-color: var(--gold); }
+.mark.active { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 0 5px rgba(184,150,90,.2); width: 12px; height: 12px; }
+.mark.era { width: 14px; height: 14px; background: var(--gold); border-color: var(--gold); }
+.mark.era.active { width: 16px; height: 16px; }
+.mark span {
+  position: absolute; right: 22px; top: 50%;
+  transform: translateY(-50%);
+  background: var(--ink); color: var(--paper);
+  padding: 4px 8px; border-radius: 6px;
+  font: 500 11px "IBM Plex Mono";
+  white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: .15s;
+}
+.mark:hover span { opacity: 1; }
+
+footer { text-align: center; padding: 4rem 1rem; font-size: .95rem; color: #7a6f5a; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <img src="Comic D.png" alt="" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--gold);">
+    <span>AI Chronicles</span>
+  </div>
+</header>
+
+<section class="hero">
+  <h1>AI Chronicles</h1>
+  <div class="by">by Dhiraj</div>
+  <p class="sub">From mythic automata to generative video — 25 pioneers across three millennia who taught machines to reason, see, and create.</p>
+</section>
+
+<div class="wrap">
+  <main class="timeline" id="timeline"></main>
+  <aside class="rail">
+    <div class="rail-inner" id="rail">
+      <div class="rail-line"></div>
+      <div class="rail-progress" id="prog"></div>
+      <div class="thumb" id="thumb"></div>
+      <div class="marks" id="marks"></div>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2rem 0;">
+    <img src="assets/Dhiraj.png" alt="Dhiraj" style="width:120px;height:120px;border-radius:50%;border:3px solid var(--gold);object-fit:cover;box-shadow:0 10px 30px rgba(0,0,0,.12);image-rendering:high-quality;">
+    <span style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--gold);letter-spacing:.08em;">Curated by <a href="https://www.linkedin.com/in/dhiraj-malwade-6a8385399/" target="_blank" style="color:var(--gold);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='transparent'">Dhiraj</a></span>
+    <span style="font-size:.9rem;color:#7a6f5a;">From mechanical men to thinking machines — 3,000 years of human imagination</span>
+  </div>
+</footer>
+
+<script>
+const data = [
+  {n:'Yan Shi',d:'c.1000 BC',t:'Mechanical Men',w:'https://en.wikipedia.org/wiki/Automaton',i:'assets/01_Yan_Shi.png',e:'ancient',b:'Life-size automata for King Mu.',why:'First myth.'},
+  {n:'Aristotle',d:'384–322 BC',t:'Syllogism',w:'https://en.wikipedia.org/wiki/Aristotle',i:'assets/02_Aristotle.png',e:'ancient',b:'Formalized deductive logic.',why:'Rulebook.'},
+  {n:'Hero of Alexandria',d:'c.10–70 AD',t:'Programmable Automata',w:'https://en.wikipedia.org/wiki/Hero_of_Alexandria',i:'assets/03_Hero_of_Alexandria.png',e:'ancient',b:'Theater automata by steam.',why:'Scripted behavior.'},
+  {n:'Al-Khwarizmi',d:'c.780–850',t:'Algorithm',w:'https://en.wikipedia.org/wiki/Muhammad_ibn_Musa_al-Khwarizmi',i:'assets/04_Al_Khwarizmi.png',e:'mechanical',b:'Systematic procedures.',why:'Named algorithm.'},
+  {n:'Ismail al-Jazari',d:'1136–1206',t:'Programmable Orchestra',w:'https://en.wikipedia.org/wiki/Ismail_al-Jazari',i:'assets/05_Ismail_al_Jazari.png',e:'mechanical',b:'Robot musicians.',why:'Programmable band.'},
+  {n:'Ramon Llull',d:'1232–1315',t:'Ars Magna',w:'https://en.wikipedia.org/wiki/Ramon_Llull',i:'assets/06_Ramon_Llull.png',e:'mechanical',b:'Combinatorial wheels.',why:'Mechanical reasoning.'},
+  {n:'Gottfried Wilhelm Leibniz',d:'1646–1716',t:'Binary',w:'https://en.wikipedia.org/wiki/Gottfried_Wilhelm_Leibniz',i:'assets/07_Gottfried_Wilhelm_Leibniz.png',e:'mathematical',b:'Binary arithmetic.',why:'Digital foundation.'},
+  {n:'Ada Lovelace',d:'1815–1852',t:'First Algorithm',w:'https://en.wikipedia.org/wiki/Ada_Lovelace',i:'assets/08_Ada_Lovelace.png',e:'mathematical',b:'First program.',why:'First coder.'},
+  {n:'George Boole',d:'1815–1864',t:'Boolean Algebra',w:'https://en.wikipedia.org/wiki/George_Boole',i:'assets/09_George_Boole.png',e:'mathematical',b:'Logic as algebra.',why:'Circuit language.'},
+  {n:'Alan Turing',d:'1912–1954',t:'Turing Machine',w:'https://en.wikipedia.org/wiki/Alan_Turing',i:'assets/10_Alan_Turing.png',e:'birth',b:'Universal computation.',why:'Defined AI question.'},
+  {n:'Claude Shannon',d:'1916–2001',t:'Information Theory',w:'https://en.wikipedia.org/wiki/Claude_Shannon',i:'assets/11_Claude_Shannon.png',e:'birth',b:'Information in bits.',why:'Measured information.'},
+  {n:'John von Neumann',d:'1903–1957',t:'Stored Program',w:'https://en.wikipedia.org/wiki/John_von_Neumann',i:'assets/12_John_von_Neumann.png',e:'birth',b:'Stored-program architecture.',why:'Modern computer.'},
+  {n:'John McCarthy',d:'1927–2011',t:"Coined 'AI'",w:'https://en.wikipedia.org/wiki/John_McCarthy_(computer_scientist)',i:'assets/13_John_McCarthy.png',e:'birth',b:'Coined AI 1956.',why:'Named field.'},
+  {n:'Marvin Minsky',d:'1927–2016',t:'Perceptrons',w:'https://en.wikipedia.org/wiki/Marvin_Minsky',i:'assets/14_Marvin_Minsky.png',e:'birth',b:'Society of mind.',why:'Mind as machine.'},
+  {n:'Joseph Weizenbaum',d:'1923–2008',t:'ELIZA',w:'https://en.wikipedia.org/wiki/Joseph_Weizenbaum',i:'assets/15_Joseph_Weizenbaum.png',e:'birth',b:'Created ELIZA.',why:'AI conscience.'},
+  {n:'Geoffrey Hinton',d:'b.1947',t:'Backpropagation',w:'https://en.wikipedia.org/wiki/Geoffrey_Hinton',i:'assets/16_Geoffrey_Hinton.png',e:'deep',b:'Deep learning pioneer.',why:'Learned features.'},
+  {n:'Yann LeCun',d:'b.1960',t:'ConvNets',w:'https://en.wikipedia.org/wiki/Yann_LeCun',i:'assets/17_Yann_LeCun.png',e:'deep',b:'CNNs.',why:'Computer vision.'},
+  {n:'Yoshua Bengio',d:'b.1964',t:'Deep Learning',w:'https://en.wikipedia.org/wiki/Yoshua_Bengio',i:'assets/18_Yoshua_Bengio.png',e:'deep',b:'Championed deep learning.',why:'Persistence.'},
+  {n:'Fei-Fei Li',d:'b.1976',t:'ImageNet',w:'https://en.wikipedia.org/wiki/Fei-Fei_Li',i:'assets/19_Fei_Fei_Li.png',e:'deep',b:'ImageNet dataset.',why:'Vision revolution.'},
+  {n:'Ian Goodfellow',d:'b.1985',t:'GANs',w:'https://en.wikipedia.org/wiki/Ian_Goodfellow',i:'assets/20_Ian_Goodfellow.png',e:'generative',b:'Invented GANs.',why:'Generative AI.'},
+  {n:'Demis Hassabis',d:'b.1976',t:'AlphaGo',w:'https://en.wikipedia.org/wiki/Demis_Hassabis',i:'assets/21_Demis_Hassabis.png',e:'generative',b:'AlphaGo, AlphaFold.',why:'AI for science.'},
+  {n:'Ilya Sutskever',d:'b.1986',t:'GPT',w:'https://en.wikipedia.org/wiki/Ilya_Sutskever',i:'assets/22_Ilya_Sutskever.png',e:'generative',b:'Scaled transformers.',why:'LLMs.'},
+  {n:'Sam Altman',d:'b.1985',t:'ChatGPT',w:'https://en.wikipedia.org/wiki/Sam_Altman',i:'assets/23_Sam_Altman.png',e:'generative',b:'Launched ChatGPT.',why:'Mainstream AI.'},
+  {n:'Robin Rombach',d:'',t:'Stable Diffusion',w:'https://en.wikipedia.org/wiki/Stable_Diffusion',i:'assets/24_Robin_Rombach.png',e:'generative',b:'Latent diffusion.',why:'Open images.'},
+  {n:'Cristobal Valenzuela',d:'',t:'Runway',w:'https://en.wikipedia.org/wiki/Runway_(company)',i:'assets/25_Cristobal_Valenzuela.png',e:'generative',b:'Video generation.',why:'AI video.'}
+];
+
+const eras = [
+  {k:'ancient',l:'Ancient'},
+  {k:'mechanical',l:'Mechanical'},
+  {k:'mathematical',l:'Mathematical'},
+  {k:'birth',l:'Birth of AI'},
+  {k:'deep',l:'Deep Learning'},
+  {k:'generative',l:'Generative'}
+];
+
+const tl = document.getElementById('timeline');
+
+eras.forEach(er => {
+  const s = document.createElement('div');
+  s.className = 'section';
+  s.id = 's-' + er.k;
+  s.innerHTML = '<h2>' + er.l + '</h2>';
+  tl.appendChild(s);
+
+  data.filter(p => p.e === er.k).forEach(p => {
+    const id = p.n.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const a = document.createElement('article');
+    a.className = 'item';
+    a.id = id;
+    a.innerHTML = '<div class="art"><span class="dot"></span><div class="frame"><img src="' + p.i + '" alt="' + p.n + '" loading="lazy"></div></div><div class="card"><h3><a href="' + p.w + '" target="_blank">' + p.n + '</a></h3><div class="meta">' + p.d + ' — ' + p.t + '</div><p class="desc">' + p.b + '</p><div class="why">' + p.why + '</div></div>';
+    tl.appendChild(a);
+  });
+});
+
+const marks = document.getElementById('marks');
+const thumb = document.getElementById('thumb');
+const prog = document.getElementById('prog');
+const rail = document.querySelector('.rail');
+const items = [...document.querySelectorAll('.section, .item')];
+
+function build() {
+  marks.innerHTML = '';
+  items.forEach(el => {
+    const m = document.createElement('button');
+    m.className = 'mark' + (el.classList.contains('section') ? ' era' : '');
+    m.title = el.querySelector('h2, h3 a')?.textContent;
+    m.onclick = () => el.scrollIntoView({behavior:'smooth',block:'start'});
+    marks.appendChild(m);
+    m._el = el;
+  });
+  place();
+}
+
+function place() {
+  const h = rail.clientHeight - 24;
+  const max = document.body.scrollHeight - innerHeight;
+  marks.querySelectorAll('.mark').forEach(m => {
+    const pct = max ? m._el.offsetTop / max : 0;
+    m.style.top = (12 + pct * h) + 'px';
+  });
+}
+
+function update() {
+  const max = document.body.scrollHeight - innerHeight;
+  const p = max ? scrollY / max : 0;
+  const h = rail.clientHeight - 24;
+  thumb.style.top = (12 + p * h) + 'px';
+  prog.style.height = (p * h) + 'px';
+  let cur = items[0];
+  for (const it of items) {
+    if (it.getBoundingClientRect().top <= 150) cur = it;
+  }
+  marks.querySelectorAll('.mark').forEach((m, i) => m.classList.toggle('active', items[i] === cur));
+}
+
+build();
+update();
+addEventListener('scroll', update, {passive:true});
+addEventListener('resize', () => { place(); update(); });
+
+let drag = false;
+thumb.onpointerdown = e => { drag = true; thumb.setPointerCapture(e.pointerId); };
+onpointermove = e => {
+  if (!drag) return;
+  const r = rail.getBoundingClientRect();
+  const y = Math.max(12, Math.min(e.clientY - r.top, r.height - 12));
+  scrollTo({top: ((y - 12) / (r.height - 24)) * (document.body.scrollHeight - innerHeight)});
+};
+onpointerup = () => drag = false;
+</script>
+</body>
+</html>
