@@ -203,7 +203,7 @@ This project proves that a museum-quality, editorial-grade web experience can be
 **Curated & Built by [Dhiraj](https://www.linkedin.com/in/dhiraj-malwade-6a8385399/)**
 
 - LinkedIn: [@dhiraj-malwade](https://www.linkedin.com/in/dhiraj-malwade-6a8385399/)
-- GitHub: [@dhirajmalwade](https://github.com/dhirajmalwade)
+
 
 ---
 
